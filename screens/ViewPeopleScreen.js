@@ -1,17 +1,18 @@
 import * as React from 'react';
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, Button } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { infoMessage } from '../utils/flashMessage';
+import NetInfo from '@react-native-community/netinfo';
 // Import helper code
 import Settings from '../constants/Settings';
-import { RoiGetPeople } from '../utils/RoiApi';
-import { PopupOk } from "../utils/Popup";
+import { RoiDeletePerson, RoiGetPeople} from '../utils/RoiApi';
+import { PopupOk, PopupOkCancel } from "../utils/Popup";
 
 // Import styling and components
 import { TextParagraph, TextH1, TextH2 } from "../components/StyledText";
 import Styles from "../styles/MainStyle";
 import { MyButton } from '../components/MyButton';
-
+import { ButtonContainer } from '../components/ButtonContainer';
 
 export default function ViewPeopleScreen(props) {
 
@@ -43,24 +44,110 @@ export default function ViewPeopleScreen(props) {
 
   }
 
-  function showAddPerson() {
-    
-    console.log("show add person...")
 
+  function showAddPerson() {
+    // Navigate to AddPerson and replace the current screen
+    props.navigation.replace('Root', { screen: 'AddPerson' });
+  }
+
+  function showViewPerson(person) {
+    // Navigate to ViewPerson and pass through the person's ID as a param
+    props.navigation.navigate('ViewPerson', { id: person.id });
+  }
+
+  function showEditPerson(person) {
+    // Navigate to EditPerson and pass through the person's ID as a param
+    props.navigation.navigate('EditPerson', { id: person.id });
+  }
+
+  /**
+   * Delete a person from the database
+   * @param {Person} person The person to delete.
+   */
+  function deletePerson(person) {
+    // Check if person should be deleted (confirm with user)
+    PopupOkCancel(
+      // Title and message
+      'Delete person?',
+      `Are you sure you want to delete ${person.name}`,
+
+      // 0K - delete the person
+      () => {
+        // Delete the person using the API
+        RoiDeletePerson(person.id)
+          .then((data) => {
+            // Show confirmation that the person has been deleted
+            PopupOk('Person deleted', `${person.name} has been  deleted`);
+            // Refresh the person list
+            refreshPersonList();
+          })
+          .catch((error) => {
+            // Display error
+            PopupOk('API Error', 'Could not delete person');
+          });
+        // console.log('Ok.. deleting person');
+      },
+      // Cancel do nothing
+      () => {
+        console.log('Cancel - no delete for you!');
+      }
+    );
+  }
+
+  // Display flash message banner if offline
+  function displayConnectionMessage() {
+    console.log('displayConnectionMessage');
+    // Get network connection status
+    NetInfo.fetch().then((status) => {
+      // Check if not connected to the Internet
+      if (!status.isConnected) {
+        // Display the flash message
+        infoMessage('No internet connection', 'You will only see cached data until you \nhave an active internet connection again');
+      }
+    });
   }
 
 
   // Display all people data
   function displayPeople() {
     
+    
     // Loop through each item and turn into appropriate output and then return the result
     return people.map(p => {
 
       // Create an output view for each item
       return (
-        <View key={p.id}>
-          <TextParagraph>{p.name}</TextParagraph>
-        </View>
+        <View key={p.id} style={Styles.dataContainerHorizontal}>
+          <View style={Styles.personListItemDetails}>
+            <TextParagraph>{p.name}</TextParagraph>
+            <TextParagraph>{p.department?.name ?? '---'}</TextParagraph>
+            <TextParagraph>{p.phone}</TextParagraph>
+          </View>
+
+        <ButtonContainer direction="column">
+          <MyButton
+          text="info"
+          type="major"
+          size="small"
+          buttonStyle={Styles.personlistItemButton}
+          textStyle={Styles.personListItemButtonText}
+          />
+             <MyButton
+             text="edit"
+             type="default"
+             size="small"
+             buttonStyle={Styles.personlistItemButton}
+             textStyle={Styles.personListItemButtonText}
+             />
+             <MyButton
+             text="Delete"
+             type="minor"
+             size="small"
+             buttonStyle={Styles.personlistItemButton}
+             textStyle={Styles.personListItemButtonText}
+             />
+        </ButtonContainer>
+                </View>
       )
 
     })

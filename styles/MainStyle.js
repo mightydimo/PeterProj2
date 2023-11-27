@@ -180,8 +180,8 @@ export default StyleSheet.create({
   // HOME SCREEN
 
   homeHeading: {
-    fontSize: 40,
-    lineHeight: 55,
+    fontSize: 36,
+    lineHeight: 70,
     textAlign: 'center',
     color: Colours.roiRed,
   },
